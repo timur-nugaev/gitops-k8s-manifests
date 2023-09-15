@@ -1,3 +1,10 @@
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: BRANCH
+  labels:
+    branch: BRANCH
+---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:

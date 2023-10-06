@@ -15,9 +15,9 @@ spec:
   source:
     helm: 
       valueFiles:
-        - base/values.yaml
-        - dev/values.yaml
-        - BRANCH/values.yaml
+        - ../../configurations/base/values.yaml
+        - ../../configurations/dev/values.yaml
+        - ../../configurations/BRANCH/values.yaml
     path: charts/saca/
     repoURL: REPO
     targetRevision: BRANCH

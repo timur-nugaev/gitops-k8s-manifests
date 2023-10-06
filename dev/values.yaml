@@ -1,1 +1,6 @@
-branchName: MY_BRANCH
+build:
+  enable: true
+
+myapp: 
+  image:
+    tag: dev

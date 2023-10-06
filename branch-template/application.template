@@ -13,7 +13,12 @@ metadata:
 spec:
   project: default
   source:
-    path: BRANCH
+    helm: 
+      valueFiles:
+        - base/values.yaml
+        - dev/values.yaml
+        - BRANCH/values.yaml
+    path: charts/saca/
     repoURL: REPO
     targetRevision: BRANCH
   destination:

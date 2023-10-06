@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: myapp
-        image: aqaliarept/test:REPLACEME
+        image: aqaliarept/test:{{ .Values.myapp.image.tag }}
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
@@ -26,8 +26,11 @@ kind: Service
 metadata:
   name: nginx
   annotations:
-    # change nginx.example.com to match an appropriate value
+    {{- if .Values.myapp.dns }}
+    external-dns.alpha.kubernetes.io/hostname: {{ .Values.myapp.dns }}
+    {{- else }}  
     external-dns.alpha.kubernetes.io/hostname: {{ .Values.branchName }}.example.com
+    {{- end }}
 spec:
   type: LoadBalancer
   ports:

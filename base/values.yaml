@@ -1,0 +1,6 @@
+myapp:
+  image:
+    tag: BASE_TAG 
+
+build:
+  enable: false

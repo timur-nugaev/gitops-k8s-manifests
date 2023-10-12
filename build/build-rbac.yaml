@@ -1,0 +1,60 @@
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: build
+  labels:
+    name: build
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: argocd-application-creator-sa
+  namespace: build 
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: argocd  
+  name: argocd-application-creator-role˝˝
+rules:
+- apiGroups: ["argoproj.io"]
+  resources: ["applications"]
+  verbs: ["create", "get", "update", "delete", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: argocd-application-creator-binding
+  namespace: argocd
+subjects:
+- kind: ServiceAccount
+  name: argocd-application-creator-sa
+  namespace: build  
+roleRef:
+  kind: Role
+  name: argocd-application-creator-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: create-namespace-cluster-role
+rules:
+- apiGroups: [""]
+  resources: ["namespaces"]
+  verbs: ["create", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: create-namespace-cluster-binding
+subjects:
+- kind: ServiceAccount
+  name: argocd-application-creator-sa 
+  namespace: build 
+roleRef:
+  kind: ClusterRole
+  name: create-namespace-cluster-role
+  apiGroup: rbac.authorization.k8s.io

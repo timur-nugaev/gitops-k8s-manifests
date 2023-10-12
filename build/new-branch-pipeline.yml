@@ -1,0 +1,146 @@
+
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: branch-manifest
+  namespace: build
+spec:
+  params:
+  - name: repo-url
+    type: string
+  - name: configuration
+    type: string
+  - name: branch
+    type: string
+  workspaces:
+  - name: repo-root
+    description: |
+      The root of the manifest repository
+  steps:
+    - name: update-image
+      image: mikefarah/yq:4
+      script: |
+        #!/bin/sh
+        set -e
+        cd $(workspaces.repo-root.path)/configurations
+        # check the base configuration existence
+        ls -la $(params.configuration) > /dev/null
+        mkdir $(params.branch)
+        sed -e 's|BRANCH|$(params.branch)|g' -e 's|REPO|$(params.repo-url)|g' $(workspaces.repo-root.path)/branch-template/application.template > ./$(params.branch)/application.yaml
+        cat $(workspaces.repo-root.path)/branch-template/values.template > ./$(params.branch)/values.yaml
+        ls ./$(params.branch)/values.yaml
+        yq -i '.branchName  = "$(params.branch)"' ./$(params.branch)/values.yaml
+        cat $(params.branch)/application.yaml
+        cat $(params.branch)/values.yaml
+---
+
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: create-new-branch
+  namespace: build
+spec:
+  description: |
+    This pipeline creates a new branch environment. 
+  params:
+  # - name: repo-url
+  #   type: string
+  - name: manifest-repo-url
+    type: string
+  - name: branch
+    type: string
+  - name: source-branch
+    type: string
+  - name: configuration
+    type: string
+  workspaces:
+  - name: shared-data
+  - name: manifest  
+  - name: docker-credentials
+  - name: ssh-creds
+  tasks:
+  - name: fetch-manifest
+    taskRef:
+      name: git-cli
+    workspaces:
+    - name: source
+      workspace: manifest
+    - name: ssh-directory
+      workspace: ssh-creds
+    params:
+    - name: GIT_USER_NAME
+      value: username
+    - name: GIT_USER_EMAIL      
+      value: username@mail.com
+    - name: GIT_SCRIPT
+      value: |
+        git init
+        git remote add origin $(params.manifest-repo-url)
+        git pull origin $(params.source-branch)
+        git checkout -b $(params.branch)
+
+  - name: branch-manifest
+    runAfter: ["fetch-manifest"]
+    taskRef:
+      name: branch-manifest
+    workspaces:
+    - name: repo-root
+      workspace: manifest
+    params:
+    - name: repo-url
+      value: $(params.manifest-repo-url)
+    - name: configuration
+      value: $(params.configuration)
+    - name: branch
+      value: $(params.branch)
+
+
+  - name: push-manifest
+    runAfter: ["branch-manifest"]
+    taskRef:
+      name: git-cli
+    workspaces:
+    - name: source
+      workspace: manifest
+    - name: ssh-directory
+      workspace: ssh-creds
+    params:
+    - name: GIT_USER_NAME
+      value: username
+    - name: GIT_USER_EMAIL      
+      value: username@mail.com
+    - name: GIT_SCRIPT
+      value: |
+        git add .
+        git status
+        git commit -m "Branch [$(params.branch)] created"
+        git push --set-upstream origin $(params.branch)
+
+  - name: create-application
+    runAfter: ["push-manifest"]
+    taskRef: 
+      name: kubernetes-actions
+    workspaces:
+    - name: manifest-dir
+      workspace: manifest
+    params: 
+      - name: script
+        value: |
+          # Using create to prevent override existing namespaces or applications
+          kubectl create -f ./configurations/$(params.branch)/application.yaml
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: docker-credentials
+data:
+  config.json: ewoJImF1dGhzIjogewoJCSJodHRwczovL2luZGV4LmRvY2tlci5pby92MS8iOiB7CgkJCSJhdXRoIjogIllYRmhiR2xoY21Wd2REcEJNVEZXVm1WRWFXVTJOalk9IgoJCX0KCX0KfQ==
+---
+kind: Secret
+apiVersion: v1
+metadata:
+  name: my-ssh-credentials
+data:
+  id_rsa: LS0tLS1CRUdJTiBPUEVOU1NIIFBSSVZBVEUgS0VZLS0tLS0KYjNCbGJuTnphQzFyWlhrdGRqRUFBQUFBQkc1dmJtVUFBQUFFYm05dVpRQUFBQUFBQUFBQkFBQUJsd0FBQUFkemMyZ3RjbgpOaEFBQUFBd0VBQVFBQUFZRUFyZU55MUV1bER5UWZjM2xDaS8xNzVGZVdCaTZ2blg3YmhLTENlNXNZbndGZjVQQnpjRmgyCjJ0ZzVnVWdlZmtPeFM2L3Q5NnhPT3J5RmR5elVOeCtiQVRYR1NTZFZCNkFMVjA5R3BmdDlBYTE5NjZidTVJWTloVG5aOUQKNitrTjFYMVhDU25NbWNiTnN0RFQxb2tqZkxlM1FscDdxT0U0V3N1UnAwcWpjczcwWEpJM2V6TlBCYXVuTmFOREoyajNFZApJWVJkT2lzTlllK1ZZNVM3a2dnOFRlTGpQOVNFd0o1bmpUeGVUMWszN3A0a0R1aU9BbE0vYXpVOHc4TTdkYy8yaUVPci9YCmE2WmpwRitTbXVOZ2IvdC9sT1lDQkI2KzdvbTdKZ1lKWXNVZi9YR0IzUXJlbEtOWmQ4c2lkUnN6QTd4TzJnU0R2WFJoUzcKU1ZzTE5UQWozemt1UkFzZEZDcW5RSkJqYmRlN2lmTEJtL2V2MU1uQU8veFNxUThxcXNXRlRnajd6NjRqaVhReTRtM0NMcwpGcDI1WS9DeDB0dnNJbXlybmNaalYydnFiTlFGR0l2TDZuVUJqT3dWM1ZQTUJjOFl6enF6MHd4NFVoTWY3VDBTbGZkQllUCkd6bS8yajFnWjBxMUJEbGF2cU1EcWdKOWgwQ2J6c0VNclpYYkZDc3pBQUFGb0VTTjF1VkVqZGJsQUFBQUIzTnphQzF5YzIKRUFBQUdCQUszamN0UkxwUThrSDNONVFvdjllK1JYbGdZdXI1MSsyNFNpd251YkdKOEJYK1R3YzNCWWR0cllPWUZJSG41RApzVXV2N2Zlc1RqcThoWGNzMURjZm13RTF4a2tuVlFlZ0MxZFBScVg3ZlFHdGZldW03dVNHUFlVNTJmUSt2cERkVjlWd2twCnpKbkd6YkxRMDlhSkkzeTN0MEphZTZqaE9GckxrYWRLbzNMTzlGeVNOM3N6VHdXcnB6V2pReWRvOXhIU0dFWFRvckRXSHYKbFdPVXU1SUlQRTNpNHovVWhNQ2VaNDA4WGs5Wk4rNmVKQTdvamdKVFAyczFQTVBETzNYUDlvaERxLzEydW1ZNlJma3ByagpZRy83ZjVUbUFnUWV2dTZKdXlZR0NXTEZILzF4Z2QwSzNwU2pXWGZMSW5VYk13TzhUdG9FZzcxMFlVdTBsYkN6VXdJOTg1CkxrUUxIUlFxcDBDUVkyM1h1NG55d1p2M3I5VEp3RHY4VXFrUEtxckZoVTRJKzgrdUk0bDBNdUp0d2k3QmFkdVdQd3NkTGIKN0NKc3E1M0dZMWRyNm16VUJSaUx5K3AxQVl6c0ZkMVR6QVhQR004NnM5TU1lRklUSCswOUVwWDNRV0V4czV2OW85WUdkSwp0UVE1V3I2akE2b0NmWWRBbTg3QkRLMlYyeFFyTXdBQUFBTUJBQUVBQUFHQUhUTzdUd2U5R29QWWZFMzY3UU9PME5RY3I4CkViWVBteTU5MWxoOWlPRS9YcElzdDJ0NEZEeEpEWFoyeXpJa1UvK3hQNmhNTjlCOFF0TGN4cmZ5NWhtNXhxUmxMQ3B0c3IKekdmVjEzNGFpak9XbUFLYXorbnpYdkpPTmdScmdHeUxtWjZrSUl5REpvelFUZzdvQnRZejUvR2plVDJOS3A0aVdadWx5QQpnb0ZhN0VqcDVGakRocEpETEhEVWtFUENhazI4SWMzZTNvKzI5K3lSQnJSNlQyYTZZVXY5MXl4ZDVVU1pXL3lOZVUydy9YCndtRXZxQmhPNkRReWxqV3RRS1hCM0UwOEsrYnMvMzlqN3ZyYUYyQ0lvRllZOUZzTUo1VUxzS0cvcVhrQ3RYNExBN0JIMXgKWFpWdmJkU3lUbUFNR2tsUGdtOTBtZjA0MWVPQlpVM0V2QWpBUCtySnExUEMrVkswcVFQR2dmbGNTbzBkOHBNV0ptd3VULwpVQlI1Q0dBbVRjNXMrdGsxeUg5cDkyTU00MVN4Y2w2MVBodHpoa1dWb3ZpNVp0YTZha0tQblRkVk9sOWlEZWVlcURCSHZ1Cko5b0FZZEtQdGFVbUUydENKd1VtUlV4aHZFeHJHeWh1NENNeXVESGp2aVFXWW5zR2dTTk9TcG9oc2NxbTFQOGhBaEFBQUEKd1FDSG1PVnFPZ09OaFhqUEFGUGZ4c0Q1QkNZS2hqZTVEc1ZBNTVrN1R5SklXdjZrREZZTitOVXEreUdDYnpSdldlVUlkNAp0UEg3R2xMQVFZTXFIL0xIRjJrTWVNdmZ0QXlEWFZyNlpGM2lNQUY1V2JpQUFmd2lBU2ZmdGo4UFpMVmg4ZmxMbTB1OVhTClE3cXJsUWxLV29XOVpwOW9RcTQ2bjBKSXA0ZDhKa0Y5Vk5hQy8yYmJSbkx6aCtHR25FYzdzb0ozQWNrZ0tzM2FJNGVhaGYKbE9oZWd5SkJrSHBwZjBVM0NKT1JwL0pVZWlXU01yNVVuS3NyTkpPL1Mvcm5OUFR0Z0FBQURCQU5uNTNjRzJBYXlnUVlubgp2VWY4dlBuRGpQSHlCQXRLMkZKUTdOckV2dzgwRGtiMjZoRWtVR3Azb0x1NlBLa0dFaXprMjVaUGNBSnJZU0F4WE5pUzFkCkI1MmhsTHBqMWJ5ajNSbjJCM29GdUdZUVVJMFR6MStkNTMvSlkrYnhtTFNmSm5yT0I3bmtaRFNncTd6NEg2WmkrU2N0SUYKTEVlZGNmd2tOdWMrQ2VFK3ljSXhkVlZwUjBEdUhmUHFMYXZuSzMyT2ljUFc3VlRiZGM4Rkp1WDNsbUFMREI4eSs4M2I1VwpXRThWbWJkNmRZQmJhb2VPZWNiYmNBK3ZpZEJmYzZHUUFBQU1FQXpEakVxNXVyc0lWc0VwNHFZSGNHU3c1U3M3cGxGRXY0CnRWM29yYXVPSTVCR0FqODk1aGVoemhqVUphTzNjd2Q1VUtmR2hiYzBlOGlTamtqZndHTERWeExROTJkenM1TEdQZml4djAKNXR3Y3NVR1NTcklSSW5wN2phUWkyRHJVeFA5NlE0aDFCSFdkMXhGTXlCS0RSMVA4NDNNME03UC9IY3FXZ1lPWUpPRjVTSgpTaVB0TjY3RzRwdXN3bjlzK0UyMjBHOXVFTEtHclBhV3AyRTM4cXRFejcwdHVaV3hrTGZMcFRSS0VhS3EwWURXUVlMTlNlCjVlQ1g5dlVPaG05OUVyQUFBQUkyRnhZV3hwWVhKbGNIUkFWR2x0ZFhKekxVMWhZMEp2YjJzdFVISnZMbXh2WTJGc0FRSUQKQkFVR0J3PT0KLS0tLS1FTkQgT1BFTlNTSCBQUklWQVRFIEtFWS0tLS0tCg==
+  known_hosts: Z2l0aHViLmNvbSBzc2gtcnNhIEFBQUFCM056YUMxeWMyRUFBQUFEQVFBQkFBQUJnUUNqN25kTnhRb3dnY1FuanNoY0xycVBFaWlwaG50K1ZUVHZEUDZtSEJMOWoxYU5Va1k0VWUxZ3Z3bkdMVmxPaEdlWXJuWmFNZ1JLNitQS0NVWGFEYkM3cXRiVzhnSWtoTDdhR0NzT3IvQzU2U0pNeS9CQ1pmeGQxbld6QU94U0RQZ1ZzbWVyT0JZZk5xbHRWOS9oV0NxQnl3SU5JUis1ZElnNkpUSjcycGNFcEVqY1lnWGtFMllFRlhWMUpIbnNLZ2JMV05saFNjcWIyVW15UmtReXl0Ukx0TCszOFRHeGt4Q2ZsbU8rNVo4Q1NTTlk3R2lkak1JWjdRNHpNakEybjFuR3JsVERrendEQ3N3K3dxRlBHUUExNzljbmZHV09XUlZydWoxNno2WHl2eHZqSndiejB3UVo3NVhLNXRLU2I3Rk55ZUlFczRUVDRqaytTNGRoUGVBVUM1eStiRFlpcllnTTRHQzd1RW56dG5aeWFWV1E3QjM4MUFLNFFkcnd0NTFacUV4S2JRcFRVTm4rRWpxb1R3dnFOajRrcXg1UVVDSTBUaFMvWWtPeEpDWG1QVVdaYmhqcENnNTZpKzJhQjZDbUsySkdobjU3SzVtajBNTmRCWEE0L1dud0g2WG9QV0p6SzVOeXUyekIzbkFacCtTNWhwUXMrcDF2TjEvd3Nqaz0= 

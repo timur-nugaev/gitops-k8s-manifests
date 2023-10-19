@@ -1,0 +1,101 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: storage-{{ .Values.serviceName }}
+spec:
+  accessModes:
+    - ReadWriteOnce  # ReadWriteOnce, ReadWriteMany, or ReadOnlyMany
+  resources:
+    requests:
+      storage: 100Mi  # Requested storage size
+---
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: git-trigger-{{ .Values.serviceName }}
+  labels:
+    build: backend
+spec:
+  interceptors:
+    - ref:
+        name: "github"
+      params:
+        - name: "secretRef"
+          value:
+            secretName: github-interceptor-secret
+            secretKey: secretToken
+        - name: "eventTypes"
+          value: ["push"]
+        - name: "addChangedFiles"
+          value:
+            enabled: true
+    - ref:
+        name: cel
+      params:
+      - name: filter
+        value: extensions.changed_files.startsWith('{{ .Values.serviceName }}/')
+      - name: filter
+        value: body.ref.split('/')[2].matches('{{ .Values.branchName }}')   
+
+  bindings:
+    - ref: git-binding-{{ .Values.serviceName }}
+  template:
+    ref: git-template-{{ .Values.serviceName }}
+---
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: git-template-{{ .Values.serviceName }}
+spec:
+  params:
+  - name: message
+    default: "MESSAGE"
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1beta1
+      kind: PipelineRun
+      metadata:
+        generateName: build-{{ .Values.serviceName }}
+      spec:
+        pipelineRef:
+          name: clone-build-push
+        podTemplate:
+          securityContext:
+            fsGroup: 65532
+        workspaces:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: {{ .Values.serviceName }}-storage
+        - name: ssh-creds
+          secret:
+            secretName: my-ssh-credentials
+        - name: docker-credentials
+          secret:
+            secretName: docker-credentials
+        params:
+        - name: services-url
+          value: https://github.com/timur-nugaev/gitops-app.git
+        - name: manifest-url
+          value: git@github.com:timur-nugaev/gitops-k8s-manifests.git
+        - name: branch
+          value: {{ .Values.branchName }}        
+        - name: service
+          value: {{ .Values.serviceName }}
+        - name: image-reference
+          value: aqaliarept/{{ .Values.serviceName }}
+---
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerBinding
+metadata:
+  name: git-binding-{{ .Values.serviceName }}
+spec: 
+  params:
+  - name: message
+    value: $(extensions.changed_files)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: github-interceptor-secret
+type: Opaque
+stringData:
+  secretToken: "1234567"    

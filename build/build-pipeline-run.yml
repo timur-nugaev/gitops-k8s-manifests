@@ -9,22 +9,9 @@ spec:
     securityContext:
       fsGroup: 65532
   workspaces:
-  - name: shared-data
-    volumeClaimTemplate:
-      spec:
-        accessModes:
-        - ReadWriteOnce
-        resources:
-          requests:
-            storage: 1Gi
-  - name: manifest
-    volumeClaimTemplate:
-      spec:
-        accessModes:
-        - ReadWriteOnce
-        resources:
-          requests:
-            storage: 1Gi
+  - name: storage
+    persistentVolumeClaim:
+      claimName: tekton-storage
   - name: ssh-creds
     secret:
       secretName: my-ssh-credentials
@@ -33,7 +20,7 @@ spec:
     secret:
       secretName: docker-credentials
   params:
-  - name: repo-url
+  - name: services-url
     value: https://github.com/timur-nugaev/gitops-app.git
   - name: manifest-url
     value: git@github.com:timur-nugaev/gitops-k8s-manifests.git

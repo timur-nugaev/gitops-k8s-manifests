@@ -1,0 +1,101 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: echo
+spec:
+  params:
+  - name: message
+    type: string
+  steps:
+    - name: goodbye
+      image: ubuntu
+      script: |
+        #!/bin/bash
+        echo "Message: [$(params.message)]"    
+---        
+
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: git-pipeline
+spec:
+  params:
+  - name: message
+    type: string
+  tasks:
+    - name: echo
+      taskRef:
+        name: echo
+      params:
+      - name: message
+        value: $(params.message)
+--- 
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: git-trigger
+  labels:
+    build: backend
+spec:
+  interceptors:
+    - ref:
+        name: "github"
+      params:
+        - name: "secretRef"
+          value:
+            secretName: github-interceptor-secret
+            secretKey: secretToken
+        - name: "eventTypes"
+          value: ["push"]
+        - name: "addChangedFiles"
+          value:
+            enabled: true
+    - ref:
+        name: cel
+      params:
+      - name: filter
+        value: body.ref.split('/')[2].matches('dev-feature1')   
+      # - name: filter
+      #   value: extensions.branch_name.matches('dev-feature1')    
+  bindings:
+    - ref: git-binding
+  template:
+    ref: git-template
+---
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: git-template
+spec:
+  params:
+  - name: message
+    default: "MESSAGE"
+  resourcetemplates:
+  - apiVersion: tekton.dev/v1beta1
+    kind: PipelineRun
+    metadata:
+      generateName: git-run-
+    spec:
+      pipelineRef:
+        name: git-pipeline
+      params:
+      - name: message
+        value: $(tt.params.message)
+---
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerBinding
+metadata:
+  name: git-binding
+spec: 
+  params:
+  - name: message
+    value: $(extensions.branch_name)
+    # value: $(extensions.changed_files)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: github-interceptor-secret
+type: Opaque
+stringData:
+  secretToken: "1234567"    

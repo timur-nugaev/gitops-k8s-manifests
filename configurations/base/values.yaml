@@ -4,3 +4,5 @@ myapp:
 
 build:
   enable: false
+
+serviceName: service1

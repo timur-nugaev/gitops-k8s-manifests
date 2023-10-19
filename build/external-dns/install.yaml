@@ -12,6 +12,7 @@ metadata:
   labels:
     app.kubernetes.io/name: external-dns
   annotations:
+      # gcp project name should be passed into helm template somehow from terraform
     iam.gke.io/gcp-service-account: external-dns-sa@saca-dev.iam.gserviceaccount.com
   namespace: external-dns    
 ---

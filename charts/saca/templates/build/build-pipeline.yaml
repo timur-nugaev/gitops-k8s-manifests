@@ -21,7 +21,7 @@ spec:
       script: |
         #!/bin/sh
         set -e
-        cd $(workspaces.repo-root.path)/$(params.configuration)
+        cd $(workspaces.repo-root.path)/manifest/configurations/$(params.configuration)
         yq -i '.myapp.image.tag = "$(params.tag)"' values.yaml
         cat values.yaml
 ---
@@ -159,59 +159,56 @@ spec:
       workspace: docker-credentials
     params:
     - name: CONTEXT
-      value: $(params.service)
-    - name: DOCKERFILE
-      value: $(params.service)/Dockerfile
+      value: services/$(params.service)
     - name: IMAGE
       value: $(params.image-reference):$(params.branch)
 
 
+  - name: update-manifest
+    runAfter: ["build-push"]
+    taskRef:
+      name: update-manifest
+    workspaces:
+    - name: repo-root
+      workspace: storage
+    params:
+    - name: image
+      value: $(params.image-reference)
+    - name: configuration
+      value: $(params.branch)
+    - name: tag
+      value: $(params.branch)
 
 
-  # - name: update-manifest
-  #   runAfter: ["fetch-manifest"]
-  #   taskRef:
-  #     name: update-manifest
-  #   workspaces:
-  #   - name: repo-root
-  #     workspace: manifest
-  #   params:
-  #   - name: image
-  #     value: $(params.image-reference)
-  #   - name: configuration
-  #     value: $(params.branch)
-  #   - name: tag
-  #     value: $(params.branch)
-
-
-  # - name: push-manifest
-  #   runAfter: ["update-manifest"]
-  #   taskRef:
-  #     resolver: cluster
-  #     params: 
-  #     - name: kind
-  #       value: task
-  #     - name: name
-  #       value: git-cli
-  #     - name: namespace
-  #       value: build   
-  #   workspaces:
-  #   - name: source
-  #     workspace: manifest
-  #   - name: ssh-directory
-  #     workspace: ssh-creds
-  #   params:
-  #   - name: GIT_USER_NAME
-  #     value: username
-  #   - name: GIT_USER_EMAIL      
-  #     value: username@mail.com
-  #   - name: GIT_SCRIPT
-  #     value: |
-  #       git switch $(params.branch)
-  #       git add .
-  #       git status
-  #       git commit -m "message"
-  #       git push
+  - name: push-manifest
+    runAfter: ["update-manifest"]
+    taskRef:
+      resolver: cluster
+      params: 
+      - name: kind
+        value: task
+      - name: name
+        value: git-cli
+      - name: namespace
+        value: build   
+    workspaces:
+    - name: source
+      workspace: storage
+    - name: ssh-directory
+      workspace: ssh-creds
+    params:
+    - name: GIT_USER_NAME
+      value: username
+    - name: GIT_USER_EMAIL      
+      value: username@mail.com
+    - name: GIT_SCRIPT
+      value: |
+        cd manifest
+        git switch $(params.branch)
+        git add .
+        git status
+        git commit -m "message"
+        git push
 
   finally:
     - name: workspace-cleanup

@@ -33,7 +33,7 @@ spec:
         name: cel
       params:
       - name: filter
-        value: extensions.changed_files.startsWith('{{ .Values.serviceName }}/')
+        value: extensions.changed_files.matches('{{ .Values.serviceName }}/')
       - name: filter
         value: body.ref.split('/')[2].matches('{{ .Values.branchName }}')   
 
@@ -63,8 +63,15 @@ spec:
             fsGroup: 65532
         workspaces:
         - name: storage
-          persistentVolumeClaim:
-            claimName: {{ .Values.serviceName }}-storage
+          volumeClaimTemplate:
+            spec:
+              accessModes:
+              - ReadWriteOnce
+              resources:
+                requests:
+                  storage: 200Mi
+          # persistentVolumeClaim:
+          #   claimName: {{ .Values.serviceName }}-storage
         - name: ssh-creds
           secret:
             secretName: my-ssh-credentials

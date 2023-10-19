@@ -18,7 +18,7 @@ spec:
         - ReadWriteOnce
         resources:
           requests:
-            storage: 1Gi
+            storage: 50Mi
   - name: manifest
     volumeClaimTemplate:
       spec:
@@ -26,7 +26,7 @@ spec:
         - ReadWriteOnce
         resources:
           requests:
-            storage: 1Gi
+            storage: 10Mi
   - name: ssh-creds
     secret:
       secretName: my-ssh-credentials
@@ -38,8 +38,8 @@ spec:
   - name: manifest-repo-url
     value: git@github.com:timur-nugaev/gitops-k8s-manifests.git
   - name: branch
-    value: $(BRANCH)
+    value: test1
   - name: source-branch
-    value: helm  
+    value: dev
   - name: configuration
     value: dev

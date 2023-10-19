@@ -1,3 +1,6 @@
 build:
   enabled: true
 branchName: test1
+myapp:
+  image:
+    tag: test1

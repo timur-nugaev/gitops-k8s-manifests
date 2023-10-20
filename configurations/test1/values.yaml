@@ -8,3 +8,6 @@ services:
   service2:
     image:
       tag: test1
+  service1:
+    image:
+      tag: test1

@@ -10,4 +10,4 @@ services:
       tag: test1
   service1:
     image:
-      tag: 701014c266cfe4501171cfb8e399e9505d78305d
+      tag: 3e80914235d951ba2afea1d03422cc302c8a67dc

@@ -4,3 +4,7 @@ branchName: test1
 myapp:
   image:
     tag: test1
+services:
+  service2:
+    image:
+      tag: test1

@@ -1,13 +1,12 @@
 build:
   enabled: true
 branchName: test1
-myapp:
-  image:
-    tag: test1
+
 services:
   service2:
     image:
       tag: test1
   service1:
+    expose: false
     image:
       tag: 7107c272be646827bb2f93ba6d42800145dc7ff1

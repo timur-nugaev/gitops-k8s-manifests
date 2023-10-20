@@ -1,20 +1,26 @@
+{{ $branch := .Values.branchName }}
+{{ $imageRegistry := .Values.imageRegistry }}
+{{ $dnsZone := .Values.dnsZone }}
+
+{{ range $serviceName, $service := .Values.services }}
+{{ if eq ($service.autoGenerate | default true) true }}
 kind: Deployment
 apiVersion: apps/v1
 metadata:
-  name: myapp
+  name: {{ $serviceName }}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: myapp
+      app: {{ $serviceName }}
   template:
     metadata:
       labels:
-        app: myapp
+        app: {{ $serviceName }}
     spec:
       containers:
-      - name: myapp
-        image: aqaliarept/test:{{ .Values.myapp.image.tag }}
+      - name: {{ $serviceName }}
+        image: {{ $imageRegistry }}/{{ $serviceName }}:{{ $service.image.tag }}
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
@@ -23,20 +29,35 @@ spec:
 ---
 apiVersion: v1
 kind: Service
+{{ if eq ($service.expose | default false) true }}
 metadata:
-  name: nginx
+  name: {{ $serviceName }}
   annotations:
-    {{- if .Values.myapp.dns }}
-    external-dns.alpha.kubernetes.io/hostname: {{ .Values.myapp.dns }}
-    {{- else }}  
-    external-dns.alpha.kubernetes.io/hostname: {{ .Values.branchName }}.example.com
-    {{- end }}
+  {{if $service.dns }}
+    external-dns.alpha.kubernetes.io/hostname: {{ $service.dns }}
+  {{ else }}
+    external-dns.alpha.kubernetes.io/hostname: {{ $serviceName }}.{{ $branch }}.{{ $dnsZone }}
+  {{ end }}
 spec:
   type: LoadBalancer
   ports:
     - port: 80
-      targetPort: 80
+      targetPort: 8080
   selector:
-    app: nginx
+    app: {{ $serviceName }}
+{{ else }}
+metadata:
+  name: {{ $serviceName }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 8080
+  selector:
+    app: {{ $serviceName }}
+{{ end }}
 
+---
+{{ end }}
+{{ end }}
 

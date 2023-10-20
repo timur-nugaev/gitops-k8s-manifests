@@ -1,11 +1,10 @@
 build:
   enabled: true
 branchName: test1
-
 services:
   service2:
     image:
-      tag: test1
+      tag: 448ea6d335326aef544edfafe03d2727edfcedcc
   service1:
     expose: false
     image:

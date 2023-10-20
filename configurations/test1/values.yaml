@@ -4,7 +4,7 @@ branchName: test1
 services:
   service2:
     image:
-      tag: 5acd8b1d8c4587c2fa975e4dc9a948cc58f5d071
+      tag: 07f0a6830f0fc066d00d5f5185b98877be1e86e5
   service1:
     expose: false
     image:

@@ -215,7 +215,36 @@ spec:
         git add .
         git status
         git commit -m "message"
-        git push
+        # Function to check for conflicts
+        check_for_conflicts() {
+          if git status | grep -q "Unmerged paths"; then
+            echo "Error: Conflicts found. Aborting."
+            exit 1
+          fi
+        }
+
+        MAX_RETRIES=10
+        # Main loop for pushing and pulling changes
+        for ((attempt = 1; attempt <= $MAX_RETRIES; attempt++)); do
+          echo "Attempt $attempt/$MAX_RETRIES: Pushing changes..."
+
+          # Push changes to the remote branch
+          git push && failed=0 || failed=1
+          # Check if the push was successful
+          if [ $failed -eq 0 ]; then
+            echo "Push successful."
+            exit 0
+          fi
+
+          echo "Push failed. Attempting to pull changes..."
+          # Pull changes from the remote branch
+          git pull --rebase
+          # Check for conflicts
+          check_for_conflicts
+          # Sleep for a few seconds before retrying
+        done
+        echo "Error: Maximum retries reached. Unable to push or pull changes."
+        exit 1
 
   - name: sync-application
     params:

@@ -149,6 +149,21 @@ spec:
         value: |
           # Using create to prevent override existing namespaces or applications
           kubectl create -f ./configurations/$(params.branch)/application.yaml
+  
+  - name: sync-application
+    params:
+    - name: branch
+      value: $(params.branch)
+    runAfter: ["create-application"]
+    taskSpec: 
+      params:
+      - name: branch 
+      steps:
+      - image: argoproj/argocd:v2.6.15
+        script: |
+          export ARGOCD_SERVER=argocd-server.argocd.svc.cluster.local
+          export ARGOCD_AUTH_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhcmdvY2QiLCJzdWIiOiJjaTphcGlLZXkiLCJuYmYiOjE2OTc4MjQ5ODYsImlhdCI6MTY5NzgyNDk4NiwianRpIjoiMWE2NjM1NDUtZWJmYi00NDRiLTgwMzktMmI2OTBiNzk0ZTQ5In0.l_giYQqaptoJNteO9y-Lc3tpHbBVQ0I363MX0EO28PU
+          argocd app sync argocd/$(params.branch) --insecure || true
 
 ---
 apiVersion: v1

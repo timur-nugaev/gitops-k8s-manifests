@@ -218,14 +218,19 @@ spec:
         git push
 
   - name: sync-application
-    runAfter: ["push-manifest"]
+    params:
+    - name: branch
+      value: $(params.branch)
+    # runAfter: ["push-manifest"]
     taskSpec: 
+      params:
+      - name: branch 
       steps:
       - image: argoproj/argocd:v2.6.15
         script: |
-          export ARGOCD_SERVER=34.79.52.152
+          export ARGOCD_SERVER=argocd-server.argocd.svc.cluster.local
           export ARGOCD_AUTH_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhcmdvY2QiLCJzdWIiOiJjaTphcGlLZXkiLCJuYmYiOjE2OTc4MjQ5ODYsImlhdCI6MTY5NzgyNDk4NiwianRpIjoiMWE2NjM1NDUtZWJmYi00NDRiLTgwMzktMmI2OTBiNzk0ZTQ5In0.l_giYQqaptoJNteO9y-Lc3tpHbBVQ0I363MX0EO28PU
-          argocd app sync argocd/test1 --insecure || true
+          argocd app sync argocd/$(params.branch) --insecure || true
 
   finally:
     - name: workspace-cleanup

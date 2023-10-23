@@ -24,7 +24,4 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: BRANCH
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true    
+  syncPolicy: {}

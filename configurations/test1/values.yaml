@@ -8,4 +8,4 @@ services:
   service1:
     expose: false
     image:
-      tag: 5aa6d3c7b52ad15ec67d91a78accf68a00b18096
+      tag: 944acbc4c97de6b99eb7389a007853af659c24c2

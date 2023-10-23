@@ -226,21 +226,6 @@ spec:
           export ARGOCD_SERVER=34.79.52.152
           export ARGOCD_AUTH_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhcmdvY2QiLCJzdWIiOiJjaTphcGlLZXkiLCJuYmYiOjE2OTc4MjQ5ODYsImlhdCI6MTY5NzgyNDk4NiwianRpIjoiMWE2NjM1NDUtZWJmYi00NDRiLTgwMzktMmI2OTBiNzk0ZTQ5In0.l_giYQqaptoJNteO9y-Lc3tpHbBVQ0I363MX0EO28PU
           argocd app sync argocd/test1 --insecure || true
-    # runAfter: ["push-manifest"]
-    # taskRef:
-    #   resolver: cluster
-    #   params: 
-    #   - name: kind
-    #     value: task
-    #   - name: name
-    #     value: argocd-task-sync-and-wait
-    #   - name: namespace
-    #     value: build   
-    # params:
-    #   - name: application-name
-    #     value: argocd/$(params.branch)
-    #   - name: flags
-    #     value: --insecure
 
   finally:
     - name: workspace-cleanup

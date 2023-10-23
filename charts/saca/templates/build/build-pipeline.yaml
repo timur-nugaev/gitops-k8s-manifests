@@ -214,7 +214,7 @@ spec:
         git switch $(params.branch)
         git add .
         git status
-        git commit -m "message"
+        git commit -m "Updated by service commit $(params.sha)"
         # Function to check for conflicts
         check_for_conflicts() {
           if git status | grep -q "Unmerged paths"; then
@@ -224,9 +224,10 @@ spec:
         }
 
         MAX_RETRIES=10
+        i=1
         # Main loop for pushing and pulling changes
-        for ((attempt = 1; attempt <= $MAX_RETRIES; attempt++)); do
-          echo "Attempt $attempt/$MAX_RETRIES: Pushing changes..."
+        while [ "$i" -le $MAX_RETRIES ]; do
+          echo "Attempt $i/$MAX_RETRIES: Pushing changes..."
 
           # Push changes to the remote branch
           git push && failed=0 || failed=1
@@ -241,7 +242,7 @@ spec:
           git pull --rebase
           # Check for conflicts
           check_for_conflicts
-          # Sleep for a few seconds before retrying
+          i=$(( i + 1 ))
         done
         echo "Error: Maximum retries reached. Unable to push or pull changes."
         exit 1

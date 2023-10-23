@@ -81,7 +81,6 @@ spec:
         git push --set-upstream origin $(params.branch)
 
   - name: fetch-manifest
-    runAfter: ["branch-services"]
     taskRef:
       name: git-cli
     workspaces:
@@ -118,7 +117,7 @@ spec:
 
 
   - name: push-manifest
-    runAfter: ["branch-manifest"]
+    runAfter: ["branch-manifest", "branch-services"]
     taskRef:
       name: git-cli
     workspaces:

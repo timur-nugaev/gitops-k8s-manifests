@@ -11,7 +11,7 @@ spec:
     securityContext:
       fsGroup: 65532
   workspaces:
-  - name: sevices
+  - name: services
     volumeClaimTemplate:
       spec:
         accessModes:
@@ -38,10 +38,11 @@ spec:
   - name: manifest-repo-url
     value: git@github.com:timur-nugaev/gitops-k8s-manifests.git
   - name: services-repo-url
-    value: https://github.com/timur-nugaev/gitops-app.git    
+    value: git@github.com:timur-nugaev/gitops-app.git    
   - name: branch
     value: NEW_BRANCH_NAME
   - name: source-branch
     value: SOURCE_BRANCH_NAME
   - name: configuration
     value: BASE_CONFIGURATION
+

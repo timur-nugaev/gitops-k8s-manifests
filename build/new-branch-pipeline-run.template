@@ -1,0 +1,45 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  generateName: create-new-branch-
+  namespace: build
+spec:
+  pipelineRef:
+    name: create-new-branch
+  serviceAccountName: argocd-application-creator-sa
+  podTemplate:
+    securityContext:
+      fsGroup: 65532
+  workspaces:
+  - name: shared-data
+    volumeClaimTemplate:
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 50Mi
+  - name: manifest
+    volumeClaimTemplate:
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 10Mi
+  - name: ssh-creds
+    secret:
+      secretName: my-ssh-credentials
+
+  - name: docker-credentials
+    secret:
+      secretName: docker-credentials
+  params:
+  - name: manifest-repo-url
+    value: git@github.com:timur-nugaev/gitops-k8s-manifests.git
+  - name: branch
+    value: NEW_BRANCH_NAME
+  - name: source-branch
+    value: SOURCE_BRANCH_NAME
+  - name: configuration
+    value: BASE_CONFIGURATION

@@ -1,6 +1,4 @@
 build:
   enable: true
 
-myapp: 
-  image:
-    tag: dev
+dnsZone: dev-scpp.dev

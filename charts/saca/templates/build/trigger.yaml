@@ -1,18 +1,81 @@
+{{ if eq .Values.build.enable true }}
 apiVersion: v1
-kind: PersistentVolumeClaim
+kind: Secret
 metadata:
-  name: storage-{{ .Values.serviceName }}
-spec:
-  accessModes:
-    - ReadWriteOnce  # ReadWriteOnce, ReadWriteMany, or ReadOnlyMany
-  resources:
-    requests:
-      storage: 100Mi  # Requested storage size
+  name: github-interceptor-secret
+type: Opaque
+stringData:
+  secretToken: "1234567"    
 ---
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: git-template-service-build
+spec:
+  params:
+  - name: service
+  - name: branch
+  - name: sha
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1beta1
+      kind: PipelineRun
+      metadata:
+        generateName: build-$(tt.params.service)-
+      spec:
+        pipelineRef:
+          name: clone-build-push
+        podTemplate:
+          securityContext:
+            fsGroup: 65532
+        workspaces:
+        - name: storage
+          volumeClaimTemplate:
+            spec:
+              accessModes:
+              - ReadWriteOnce
+              resources:
+                requests:
+                  storage: 200Mi
+          # persistentVolumeClaim:
+          #   claimName: $(tt.params.service)-storage
+        - name: ssh-creds
+          secret:
+            secretName: my-ssh-credentials
+        - name: docker-credentials
+          secret:
+            secretName: docker-credentials
+        params:
+        - name: services-url
+          value: {{ .Values.servicesRepo }}
+        - name: manifest-url
+          value: {{ .Values.manifestRepo }}
+        - name: branch
+          value: $(tt.params.branch)        
+        - name: service
+          value: $(tt.params.service)   
+        - name: image-reference
+          value: {{ .Values.imageRegistry }}/$(tt.params.service)
+        - name: sha
+          value: $(tt.params.sha)
+---
+
+{{ $branch := .Values.branchName }}
+{{ range $serviceName, $v := .Values.services }}
+# apiVersion: v1
+# kind: PersistentVolumeClaim
+# metadata:
+#   name: storage-{{ $serviceName }}
+# spec:
+#   accessModes:
+#     - ReadWriteOnce  # ReadWriteOnce, ReadWriteMany, or ReadOnlyMany
+#   resources:
+#     requests:
+#       storage: 100Mi  # Requested storage size
+# ---
 apiVersion: triggers.tekton.dev/v1beta1
 kind: Trigger
 metadata:
-  name: git-trigger-{{ .Values.serviceName }}
+  name: git-trigger-{{ $serviceName }}
   labels:
     build: backend
 spec:
@@ -33,76 +96,16 @@ spec:
         name: cel
       params:
       - name: filter
-        value: extensions.changed_files.matches('{{ .Values.serviceName }}/')
-      - name: filter
-        value: body.ref.split('/')[2].matches('{{ .Values.branchName }}')   
-
+        value: body.ref.split('/')[2].matches('{{ $branch }}') && extensions.changed_files.matches('{{ $serviceName }}/')
   bindings:
-    - ref: git-binding-{{ .Values.serviceName }}
+  - name: branch
+    value: {{ $branch }}
+  - name: service
+    value: {{ $serviceName }}
+  - name: sha
+    value: $(body.after)
   template:
-    ref: git-template-{{ .Values.serviceName }}
+    ref: git-template-service-build
 ---
-apiVersion: triggers.tekton.dev/v1beta1
-kind: TriggerTemplate
-metadata:
-  name: git-template-{{ .Values.serviceName }}
-spec:
-  params:
-  - name: message
-    default: "MESSAGE"
-  resourcetemplates:
-    - apiVersion: tekton.dev/v1beta1
-      kind: PipelineRun
-      metadata:
-        generateName: build-{{ .Values.serviceName }}
-      spec:
-        pipelineRef:
-          name: clone-build-push
-        podTemplate:
-          securityContext:
-            fsGroup: 65532
-        workspaces:
-        - name: storage
-          volumeClaimTemplate:
-            spec:
-              accessModes:
-              - ReadWriteOnce
-              resources:
-                requests:
-                  storage: 200Mi
-          # persistentVolumeClaim:
-          #   claimName: {{ .Values.serviceName }}-storage
-        - name: ssh-creds
-          secret:
-            secretName: my-ssh-credentials
-        - name: docker-credentials
-          secret:
-            secretName: docker-credentials
-        params:
-        - name: services-url
-          value: https://github.com/timur-nugaev/gitops-app.git
-        - name: manifest-url
-          value: git@github.com:timur-nugaev/gitops-k8s-manifests.git
-        - name: branch
-          value: {{ .Values.branchName }}        
-        - name: service
-          value: {{ .Values.serviceName }}
-        - name: image-reference
-          value: aqaliarept/{{ .Values.serviceName }}
----
-apiVersion: triggers.tekton.dev/v1beta1
-kind: TriggerBinding
-metadata:
-  name: git-binding-{{ .Values.serviceName }}
-spec: 
-  params:
-  - name: message
-    value: $(extensions.changed_files)
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: github-interceptor-secret
-type: Opaque
-stringData:
-  secretToken: "1234567"    
+{{ end }}
+{{ end }}

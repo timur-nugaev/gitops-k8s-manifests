@@ -61,17 +61,6 @@ spec:
 
 {{ $branch := .Values.branchName }}
 {{ range $serviceName, $v := .Values.services }}
-# apiVersion: v1
-# kind: PersistentVolumeClaim
-# metadata:
-#   name: storage-{{ $serviceName }}
-# spec:
-#   accessModes:
-#     - ReadWriteOnce  # ReadWriteOnce, ReadWriteMany, or ReadOnlyMany
-#   resources:
-#     requests:
-#       storage: 100Mi  # Requested storage size
-# ---
 apiVersion: triggers.tekton.dev/v1beta1
 kind: Trigger
 metadata:

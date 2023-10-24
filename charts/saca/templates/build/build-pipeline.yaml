@@ -125,7 +125,6 @@ spec:
 
   tasks:
   - name: fetch-services
-    runAfter: ["fetch-manifest"]
     taskRef:
       resolver: cluster
       params:

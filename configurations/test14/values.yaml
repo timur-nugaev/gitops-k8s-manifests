@@ -5,3 +5,6 @@ services:
   service1:
     image:
       tag: 8a54ac0595d04c6ee4371b34e835b02b91b2bab8
+  service2:
+    image:
+      tag: 8a54ac0595d04c6ee4371b34e835b02b91b2bab8

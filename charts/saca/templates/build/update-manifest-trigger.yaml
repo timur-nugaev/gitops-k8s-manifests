@@ -1,0 +1,43 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: sync-manifest-trigger
+  labels:
+    build: manifest
+spec:
+  interceptors:
+    - ref:
+        name: "github"
+      params:
+        - name: "secretRef"
+          value:
+            secretName: github-interceptor-secret
+            secretKey: secretToken
+        - name: "eventTypes"
+          value: ["push"]
+    - ref:
+        name: cel
+      params:
+        - name: filter
+          value: body.ref.split('/')[2].matches('{{ .Values.branchName }}')
+  bindings:
+    - name: branch
+      value: {{ .Values.branchName }}
+  template:
+    spec:
+      params:
+        - name: branch
+      resourcetemplates:
+        - apiVersion: tekton.dev/v1beta1
+          kind: TaskRun
+          metadata:
+            generateName: sync-manifest-$(tt.params.branch)-
+          spec:
+            params:
+            - name: branch
+            steps:
+            - image: argoproj/argocd:v2.6.15
+              script: |
+                export ARGOCD_SERVER=argocd-server.argocd.svc.cluster.local
+                export ARGOCD_AUTH_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhcmdvY2QiLCJzdWIiOiJjaTphcGlLZXkiLCJuYmYiOjE2OTc4MjQ5ODYsImlhdCI6MTY5NzgyNDk4NiwianRpIjoiMWE2NjM1NDUtZWJmYi00NDRiLTgwMzktMmI2OTBiNzk0ZTQ5In0.l_giYQqaptoJNteO9y-Lc3tpHbBVQ0I363MX0EO28PU
+                argocd app sync argocd/$(params.branch) --insecure || true

@@ -55,3 +55,22 @@ spec:
   labelSelector:
     matchLabels:
       build: backend
+---
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: EventListener
+metadata:
+  name: manifest-push
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: manifest-listener.dev-scpp.dev
+spec:
+  resources:
+    kubernetesResource:
+      serviceType: LoadBalancer
+  serviceAccountName: tekton-robot
+  namespaceSelector:
+    matchNames:
+    - "*"  
+  labelSelector:
+    matchLabels:
+      build: manifest 
+

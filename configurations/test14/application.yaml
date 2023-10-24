@@ -1,0 +1,27 @@
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: test14
+  labels:
+    branch: test14
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: test14
+  namespace: argocd
+spec:
+  project: default
+  source:
+    helm: 
+      valueFiles:
+        - ../../configurations/base/values.yaml
+        - ../../configurations/dev/values.yaml
+        - ../../configurations/test14/values.yaml
+    path: charts/saca/
+    repoURL: git@github.com:timur-nugaev/gitops-k8s-manifests.git
+    targetRevision: test14
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: test14
+  syncPolicy: {}

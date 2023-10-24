@@ -6,27 +6,63 @@ metadata:
   name: update-manifest
 spec:
   params:
-  - name: image
+  - name: manifest-url
     type: string
-  - name: configuration
+  - name: branch
+    type: string
+  - name: service 
     type: string
   - name: tag
     type: string
-  - name: service
-    type: string  
   workspaces:
-  - name: repo-root
-    description: |
-      The root of the manifest repository
+  - name: storage
+  - name: ssh-directory
   steps:
-    - name: update-image
-      image: mikefarah/yq:4
+    - name: default
+      image: alpine/git:latest
       script: |
         #!/bin/sh
-        set -e
-        cd $(workspaces.repo-root.path)/manifest/configurations/$(params.configuration)
-        yq -i '.services.$(params.service).image.tag = "$(params.tag)"' values.yaml
-        cat values.yaml
+        # initialize env
+        apk update && apk add yq
+        mkdir -p /root/.ssh
+        cp $(workspaces.ssh-directory.path)/* /root/.ssh
+        chmod 400 /root/.ssh/id_rsa
+        mkdir -p $(workspaces.storage.path)/manifest
+        cd $(workspaces.storage.path)/manifest
+        git init
+        git remote add origin $(params.manifest-url)
+        git fetch
+        git checkout $(params.branch)
+        git config --global user.email "ci@ci.dev"
+        git config --global user.name "CI pipeline"
+        MAX_RETRIES=10
+        i=1
+        # Main loop for updating manifest
+        while [ "$i" -le $MAX_RETRIES ]; do
+          # updating image tag
+          cd $(workspaces.storage.path)/manifest/configurations/$(params.branch)
+          yq -i '.services.$(params.service).image.tag = "$(params.tag)"' values.yaml
+
+          git add .
+          git status
+          git commit -m "Updated by service commit $(params.tag)"
+          echo "Attempt $i/$MAX_RETRIES: Pushing changes..."
+
+          # Push changes to the remote branch
+          git push && failed=0 || failed=1
+          # Check if the push was successful
+          if [ $failed -eq 0 ]; then
+            echo "Push successful."
+            exit 0
+          fi
+
+          echo "Push failed. Attempting to pull changes and retry..."
+          git reset --hard origin/$(params.branch)
+          git pull
+          i=$(( i + 1 ))
+        done
+        echo "Error: Maximum retries reached. Unable update manifest"
+        exit 1
 ---
 apiVersion: tekton.dev/v1beta1
 kind: Task
@@ -88,34 +124,6 @@ spec:
   - name: ssh-creds
 
   tasks:
-  - name: fetch-manifest
-    taskRef:
-      resolver: cluster
-      params: 
-      - name: kind
-        value: task
-      - name: name
-        value: git-cli
-      - name: namespace
-        value: build   
-    workspaces:
-    - name: source
-      workspace: storage
-    - name: ssh-directory
-      workspace: ssh-creds
-    params:
-    - name: GIT_USER_NAME
-      value: username
-    - name: GIT_USER_EMAIL      
-      value: username@mail.com
-    - name: GIT_SCRIPT
-      value: |
-        mkdir manifest
-        cd manifest
-        git init
-        git remote add origin $(params.manifest-url)
-        git pull origin $(params.branch)
-
   - name: fetch-services
     runAfter: ["fetch-manifest"]
     taskRef:
@@ -168,84 +176,23 @@ spec:
     - name: IMAGE
       value: $(params.image-reference):$(params.sha)
 
-
   - name: update-manifest
-    runAfter: ["build-push"]
-    taskRef:
+    taskRef: 
       name: update-manifest
-    workspaces:
-    - name: repo-root
-      workspace: storage
     params:
-    - name: image
-      value: $(params.image-reference)
-    - name: configuration
+    - name: manifest-url
+      value: $(params.manifest-url)
+    - name: branch
       value: $(params.branch)
-    - name: tag
-      value: $(params.sha)
     - name: service
       value: $(params.service)
-
-
-  - name: push-manifest
-    runAfter: ["update-manifest"]
-    taskRef:
-      resolver: cluster
-      params: 
-      - name: kind
-        value: task
-      - name: name
-        value: git-cli
-      - name: namespace
-        value: build   
+    - name: tag
+      value: $(params.sha)
     workspaces:
-    - name: source
+    - name: storage
       workspace: storage
     - name: ssh-directory
       workspace: ssh-creds
-    params:
-    - name: GIT_USER_NAME
-      value: username
-    - name: GIT_USER_EMAIL      
-      value: username@mail.com
-    - name: GIT_SCRIPT
-      value: |
-        cd manifest
-        git switch $(params.branch)
-        git add .
-        git status
-        git commit -m "Updated by service commit $(params.sha)"
-        # Function to check for conflicts
-        check_for_conflicts() {
-          if git status | grep -q "Unmerged paths"; then
-            echo "Error: Conflicts found. Aborting."
-            exit 1
-          fi
-        }
-
-        MAX_RETRIES=10
-        i=1
-        # Main loop for pushing and pulling changes
-        while [ "$i" -le $MAX_RETRIES ]; do
-          echo "Attempt $i/$MAX_RETRIES: Pushing changes..."
-
-          # Push changes to the remote branch
-          git push && failed=0 || failed=1
-          # Check if the push was successful
-          if [ $failed -eq 0 ]; then
-            echo "Push successful."
-            exit 0
-          fi
-
-          echo "Push failed. Attempting to pull changes..."
-          # Pull changes from the remote branch
-          git pull --rebase
-          # Check for conflicts
-          check_for_conflicts
-          i=$(( i + 1 ))
-        done
-        echo "Error: Maximum retries reached. Unable to push or pull changes."
-        exit 1
 
   - name: sync-application
     params:

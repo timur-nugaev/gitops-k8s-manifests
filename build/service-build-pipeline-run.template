@@ -1,7 +1,7 @@
 apiVersion: tekton.dev/v1beta1
 kind: PipelineRun
 metadata:
-  generateName: build-service1-
+  generateName: build-SERVICE_NAME-
 spec:
     pipelineRef:
         name: clone-build-push
@@ -29,10 +29,10 @@ spec:
     - name: manifest-url
       value: git@github.com:timur-nugaev/gitops-k8s-manifests.git
     - name: branch
-      value: test13
+      value: BRANCH_NAME
     - name: service
-      value: service1   
+      value: SERVICE_NAME   
     - name: image-reference
-      value: aqaliarept/service1
+      value: aqaliarept/SERVICE_NAME
     - name: sha
       value: HEAD

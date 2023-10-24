@@ -220,7 +220,6 @@ spec:
             script: |
               rm -rf $(workspaces.storage.path)/services
               rm -rf $(workspaces.storage.path)/manifest
-              ls -la $(workspaces.storage.path)
 ---
 apiVersion: v1
 kind: Secret

@@ -21,7 +21,7 @@ then
     SOURCE_BRANCH_NAME=dev
 fi
 
-sed -e "s/NEW_BRANCH_NAME/$NEW_BRANCH_NAME/" \
+sed -e "s|NEW_BRANCH_NAME|$NEW_BRANCH_NAME|g" \
   -e "s|BASE_CONFIGURATION|$BASE_CONFIGURATION|g" \
   -e "s|SOURCE_BRANCH_NAME|$SOURCE_BRANCH_NAME|g" ./build/new-branch-pipeline-run.template \
   | kubectl -n build create -f - \

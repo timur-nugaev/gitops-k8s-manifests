@@ -24,6 +24,7 @@ fi
 sed -e "s/NEW_BRANCH_NAME/$NEW_BRANCH_NAME/" \
   -e "s|BASE_CONFIGURATION|$BASE_CONFIGURATION|g" \
   -e "s|SOURCE_BRANCH_NAME|$SOURCE_BRANCH_NAME|g" ./build/new-branch-pipeline-run.template \
-  | kubectl create -f -  
+  | kubectl -n build create -f - \
+  | cut -d '/' -f 2 | cut -d ' ' -f 1 | xargs tkn -n build pipelinerun logs -f  
 
 

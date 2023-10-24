@@ -154,7 +154,7 @@ spec:
         git pull origin $(params.branch)
         git checkout $(params.sha)
 
-  - name: build-push
+  - name: build-and-push-service-image
     runAfter: ["fetch-services"]
     taskRef:
       resolver: cluster
@@ -177,6 +177,7 @@ spec:
       value: $(params.image-reference):$(params.sha)
 
   - name: update-manifest
+    runAfter: ["build-and-push-service-image"]
     taskRef: 
       name: update-manifest
     params:
@@ -198,7 +199,7 @@ spec:
     params:
     - name: branch
       value: $(params.branch)
-    runAfter: ["push-manifest"]
+    runAfter: ["update-manifest"]
     taskSpec: 
       params:
       - name: branch 

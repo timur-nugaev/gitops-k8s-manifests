@@ -13,4 +13,4 @@
 ? How combine kustomize (for selfmanaged services) and Helm (for infra services)
     (app-of-apps, )
 ? How remove old Pods for Tekton pipeline runs
-? Use Tekton to enroll new environment? 
+? Use Tekton to enroll new environment?

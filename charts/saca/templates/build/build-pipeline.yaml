@@ -40,7 +40,7 @@ spec:
         # Main loop for updating manifest
         while [ "$i" -le $MAX_RETRIES ]; do
           # updating image tag
-          cd $(workspaces.storage.path)/manifest/configurations/$(params.branch)
+          cd $(workspaces.storage.path)/manifest/configurations/dev
           yq -i '.services.$(params.service).image.tag = "$(params.tag)"' values.yaml
 
           git add .

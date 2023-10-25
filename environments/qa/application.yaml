@@ -1,0 +1,26 @@
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: qa
+  labels:
+    branch: main
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dev
+  namespace: argocd
+spec:
+  project: default
+  source:
+    helm: 
+      valueFiles:
+        - ../../configurations/base/values.yaml
+        - ../../configurations/qa/values.yaml
+    path: charts/saca/
+    repoURL: git@github.com:timur-nugaev/gitops-k8s-manifests.git
+    targetRevision: main
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: qa
+  syncPolicy: {}

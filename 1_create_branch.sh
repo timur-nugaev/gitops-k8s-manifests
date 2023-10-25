@@ -18,7 +18,7 @@ fi
 
 if [ -z "$SOURCE_BRANCH_NAME" ]
 then
-    SOURCE_BRANCH_NAME=dev
+    SOURCE_BRANCH_NAME=main
 fi
 
 sed -e "s|NEW_BRANCH_NAME|$NEW_BRANCH_NAME|g" \

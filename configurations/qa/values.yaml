@@ -3,6 +3,8 @@ build:
 
 dnsZone: test-scpp.dev
 
+branchName: main
+
 services:
   service1:
     image:

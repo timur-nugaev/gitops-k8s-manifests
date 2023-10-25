@@ -4,12 +4,7 @@ manifestRepo: git@github.com:timur-nugaev/gitops-k8s-manifests.git
 
 services:
   service1:
-    # expose: true
-    # autoGenerate: true
-    image:
-      tag: INVALID 
-
-  service2:
+    expose: true
     # autoGenerate: true
     image:
       tag: INVALID

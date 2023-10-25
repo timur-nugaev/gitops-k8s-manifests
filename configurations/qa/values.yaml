@@ -1,7 +1,7 @@
 build:
-  enable: true
+  enable: false
 
-dnsZone: dev-scpp.dev
+dnsZone: test-scpp.dev
 
 branchName: main
 

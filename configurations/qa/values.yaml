@@ -4,6 +4,7 @@ build:
 dnsZone: test-scpp.dev
 
 branchName: main
+applicationName: qa
 
 services:
   service1:

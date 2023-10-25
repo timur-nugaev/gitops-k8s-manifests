@@ -4,6 +4,7 @@ build:
 dnsZone: dev-scpp.dev
 
 branchName: main
+applicationName: dev
 
 services:
   service1:

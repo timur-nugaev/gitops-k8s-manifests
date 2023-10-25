@@ -27,9 +27,7 @@ spec:
         ls -la $(params.configuration) > /dev/null
         mkdir $(params.branch)
         sed -e 's|BRANCH|$(params.branch)|g' -e 's|REPO|$(params.repo-url)|g' $(workspaces.repo-root.path)/branch-template/application.template > ./$(params.branch)/application.yaml
-        cat $(workspaces.repo-root.path)/branch-template/values.template > ./$(params.branch)/values.yaml
-        ls ./$(params.branch)/values.yaml
-        yq -i '.branchName  = "$(params.branch)"' ./$(params.branch)/values.yaml
+        sed -e 's|BRANCH|$(params.branch)|g' $(workspaces.repo-root.path)/branch-template/values.template > ./$(params.branch)/values.yaml
         cat $(params.branch)/application.yaml
         cat $(params.branch)/values.yaml
 ---

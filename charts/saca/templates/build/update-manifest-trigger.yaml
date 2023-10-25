@@ -21,8 +21,6 @@ spec:
         - name: filter
           value: body.ref.split('/')[2].matches('{{ .Values.branchName }}')
   bindings:
-    - name: branch
-      value: {{ .Values.branchName }}
   template:
     spec:
       resourcetemplates:

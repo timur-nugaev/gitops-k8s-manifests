@@ -1,0 +1,15 @@
+imageRegistry: aqaliarept
+servicesRepo: https://github.com/timur-nugaev/gitops-app.git
+manifestRepo: git@github.com:timur-nugaev/gitops-k8s-manifests.git
+
+services:
+  service1:
+    expose: true
+    # autoGenerate: true
+    image:
+      tag: INVALID
+
+build:
+  enable: false
+
+dnsZone: INVALID

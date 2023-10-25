@@ -1,0 +1,100 @@
+{{ if eq .Values.build.enable true }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: github-interceptor-secret
+type: Opaque
+stringData:
+  secretToken: "1234567"    
+---
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: git-template-service-build
+spec:
+  params:
+  - name: service
+  - name: branch
+  - name: sha
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1beta1
+      kind: PipelineRun
+      metadata:
+        generateName: build-$(tt.params.service)-
+      spec:
+        pipelineRef:
+          name: clone-build-push
+        podTemplate:
+          securityContext:
+            fsGroup: 65532
+        workspaces:
+        - name: storage
+          volumeClaimTemplate:
+            spec:
+              accessModes:
+              - ReadWriteOnce
+              resources:
+                requests:
+                  storage: 200Mi
+          # persistentVolumeClaim:
+          #   claimName: $(tt.params.service)-storage
+        - name: ssh-creds
+          secret:
+            secretName: my-ssh-credentials
+        - name: docker-credentials
+          secret:
+            secretName: docker-credentials
+        params:
+        - name: services-url
+          value: {{ .Values.servicesRepo }}
+        - name: manifest-url
+          value: {{ .Values.manifestRepo }}
+        - name: branch
+          value: $(tt.params.branch)        
+        - name: service
+          value: $(tt.params.service)   
+        - name: image-reference
+          value: {{ .Values.imageRegistry }}/$(tt.params.service)
+        - name: sha
+          value: $(tt.params.sha)
+---
+
+{{ $branch := .Values.branchName }}
+{{ range $serviceName, $v := .Values.services }}
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: git-trigger-{{ $serviceName }}
+  labels:
+    build: backend
+spec:
+  interceptors:
+    - ref:
+        name: "github"
+      params:
+        - name: "secretRef"
+          value:
+            secretName: github-interceptor-secret
+            secretKey: secretToken
+        - name: "eventTypes"
+          value: ["push"]
+        - name: "addChangedFiles"
+          value:
+            enabled: true
+    - ref:
+        name: cel
+      params:
+      - name: filter
+        value: body.ref.split('/')[2].matches('{{ $branch }}') && extensions.changed_files.matches('{{ $serviceName }}/')
+  bindings:
+  - name: branch
+    value: {{ $branch }}
+  - name: service
+    value: {{ $serviceName }}
+  - name: sha
+    value: $(body.after)
+  template:
+    ref: git-template-service-build
+---
+{{ end }}
+{{ end }}

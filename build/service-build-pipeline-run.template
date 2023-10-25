@@ -1,0 +1,38 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  generateName: build-SERVICE_NAME-
+spec:
+    pipelineRef:
+        name: clone-build-push
+    podTemplate:
+      securityContext:
+        fsGroup: 65532
+    workspaces:
+    - name: storage
+      volumeClaimTemplate:
+        spec:
+            accessModes:
+            - ReadWriteOnce
+            resources:
+              requests:
+                storage: 200Mi
+    - name: ssh-creds
+      secret:
+        secretName: my-ssh-credentials
+    - name: docker-credentials
+      secret:
+        secretName: docker-credentials
+    params:
+    - name: services-url
+      value: https://github.com/timur-nugaev/gitops-app.git
+    - name: manifest-url
+      value: git@github.com:timur-nugaev/gitops-k8s-manifests.git
+    - name: branch
+      value: BRANCH_NAME
+    - name: service
+      value: SERVICE_NAME   
+    - name: image-reference
+      value: aqaliarept/SERVICE_NAME
+    - name: sha
+      value: HEAD

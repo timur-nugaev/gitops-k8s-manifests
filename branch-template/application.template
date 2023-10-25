@@ -1,0 +1,27 @@
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: BRANCH
+  labels:
+    branch: BRANCH
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: BRANCH
+  namespace: argocd
+spec:
+  project: default
+  source:
+    helm: 
+      valueFiles:
+        - ../../configurations/base/values.yaml
+        - ../../configurations/dev/values.yaml
+        - ../../configurations/BRANCH/values.yaml
+    path: charts/saca/
+    repoURL: REPO
+    targetRevision: BRANCH
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: BRANCH
+  syncPolicy: {}

@@ -1,6 +1,8 @@
 build:
   enable: true
 
+# autoSync: true
+
 dnsZone: dev-scpp.dev
 
 branchName: main

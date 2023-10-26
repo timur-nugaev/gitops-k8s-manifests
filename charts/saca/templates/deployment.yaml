@@ -3,7 +3,7 @@
 {{ $dnsZone := .Values.dnsZone }}
 
 {{ range $serviceName, $service := .Values.services }}
-{{ if eq ($service.autoGenerate | default true) true }}
+{{ if ne $service.autoGenerate false }}
 kind: Deployment
 apiVersion: apps/v1
 metadata:

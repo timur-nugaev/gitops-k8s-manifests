@@ -1,0 +1,6 @@
+build: 
+  enabled: true
+
+branchName: change-service1-http-reponse
+applicationName: change-service1-http-reponse
+

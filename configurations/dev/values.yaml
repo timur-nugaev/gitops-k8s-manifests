@@ -7,4 +7,4 @@ applicationName: dev
 services:
   service1:
     image:
-      tag: 2035d2710a4942315a7b2496816a20c183a2348d
+      tag: 55d7badcf76cb6ff602bb77285d4b23b4a51927e

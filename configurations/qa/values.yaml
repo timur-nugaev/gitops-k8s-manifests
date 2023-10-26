@@ -9,5 +9,5 @@ applicationName: qa
 services:
   service1:
     image:
-      tag: 945509f2b717fceaef30013249b9551fc3c193dd
+      tag: 2035d2710a4942315a7b2496816a20c183a2348d
       dns: sevice1.qa.test-scpp.dev

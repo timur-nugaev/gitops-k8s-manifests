@@ -1,14 +1,10 @@
 build:
   enable: true
-
 # autoSync: true
-
 dnsZone: dev-scpp.dev
-
 branchName: main
 applicationName: dev
-
 services:
   service1:
     image:
-      tag: 945509f2b717fceaef30013249b9551fc3c193dd
+      tag: 71775f924eba7b789a17308f7dd02e309b284dfe

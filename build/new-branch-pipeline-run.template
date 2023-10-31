@@ -1,7 +1,7 @@
 apiVersion: tekton.dev/v1beta1
 kind: PipelineRun
 metadata:
-  name: create-new-branch-NEW_BRANCH_NAME
+  generateName: create-new-branch-NEW_BRANCH_NAME-
   namespace: build
 spec:
   pipelineRef:

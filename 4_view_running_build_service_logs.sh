@@ -1,7 +1,7 @@
 SERVICE_NAME=$1
 NAMESPACE=$2
 
-if [ ! -z "$NAMESPACE" ]
+if [ -z "$NAMESPACE" ]
 then
     NAMESPACE=`git branch --show-current`
 fi

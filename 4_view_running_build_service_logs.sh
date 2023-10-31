@@ -1,5 +1,10 @@
 SERVICE_NAME=$1
-BRANCH_NAME=`git branch --show-current`
+NAMESPACE=$2
+
+if [ ! -z "$NAMESPACE" ]
+then
+    NAMESPACE=`git branch --show-current`
+fi
 
 if [ -z "$SERVICE_NAME" ]
 then
@@ -7,4 +12,4 @@ then
     exit 1
 fi
 
-tkn -n $BRANCH_NAME pipelinerun list | grep build-$SERVICE_NAME | grep Running | awk '{print $1}' | xargs tkn -n $BRANCH_NAME pipelinerun logs -f
+tkn -n $NAMESPACE pipelinerun list | grep build-$SERVICE_NAME | grep Running | awk '{print $1}' | xargs tkn -n $NAMESPACE pipelinerun logs -f

@@ -1,0 +1,27 @@
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: add-world
+  labels:
+    branch: add-world
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: add-world
+  namespace: argocd
+spec:
+  project: default
+  source:
+    helm: 
+      valueFiles:
+        - ../../configurations/base/values.yaml
+        - ../../configurations/dev/values.yaml
+        - ../../configurations/add-world/values.yaml
+    path: charts/saca/
+    repoURL: git@github.com:timur-nugaev/gitops-k8s-manifests.git
+    targetRevision: add-world
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: add-world
+  syncPolicy: {}
